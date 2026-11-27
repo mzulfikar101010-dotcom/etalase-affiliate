@@ -1,384 +1,279 @@
 <!doctype html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Etalase Affiliate</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Etalase Affiliate</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f6f5f2;color:#1f1f1f;line-height:1.45}
+.wrap{max-width:960px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+h1{font-size:1.5rem}
+input{width:100%;padding:11px 12px;border:1px solid #d6d3cc;border-radius:10px;font-size:1rem;background:#fff}
+label{display:block;font-weight:600;font-size:.9rem;margin:12px 0 5px}
+button,.btn{border:0;border-radius:10px;padding:10px 14px;font-family:inherit;font-weight:600;font-size:.95rem;cursor:pointer;background:#e9e6df;color:#1f1f1f;text-decoration:none;text-align:center;display:block}
+button:disabled{opacity:.5;cursor:wait}
+.primary{background:#ee4d2d;color:#fff}
+.done{background:#16854a;color:#fff}
+.danger{color:#b3261e}
+.box{background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:18px}
+.row{display:flex;gap:8px;margin-top:14px}
+.drop{border:2px dashed #bbb6ab;border-radius:12px;padding:22px;text-align:center;cursor:pointer;color:#6b6b6b}
+.drop.over,.drop:focus{border-color:#ee4d2d;background:#fff3f0}
+.drop img{max-width:160px;max-height:160px;border-radius:10px;display:block;margin:0 auto 8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:14px}
+.card{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);display:flex;flex-direction:column}
+.card img{width:100%;aspect-ratio:1;object-fit:contain;background:#fff}
+.card .body{padding:10px;display:flex;flex-direction:column;gap:6px;flex:1}
+.card h3{font-size:.95rem;overflow-wrap:anywhere;flex:1}
+.muted{color:#6b6b6b;font-size:.9rem}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1f1f1f;color:#fff;padding:10px 16px;border-radius:10px;font-size:.9rem;display:none;max-width:90%;width:max-content}
+[hidden]{display:none!important}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <section id="publicView">
-      <header class="top">
-        <div>
-          <h1 id="title">Etalase Affiliate</h1>
-          <p class="muted">Pilih paket, lalu tekan <b>Salin Link</b>.</p>
-        </div>
-        <button id="loginBtn">Admin</button>
-      </header>
-      <form id="loginForm" class="box login" hidden>
-        <label for="password" style="margin-top:0">Password admin</label>
-        <input id="password" type="password" autocomplete="current-password" required>
-        <div class="row"><button class="primary">Masuk</button><button type="button" id="closeLogin">Batal</button></div>
-      </form>
-      <input id="search" type="search" placeholder="Cari nama paket atau etalase..." aria-label="Cari">
-      <div id="chips" class="chips"></div>
-      <main id="list2"><p class="muted">Memuat...</p></main>
-    </section>
+<div class="wrap">
+  <header>
+    <h1>Etalase Affiliate</h1>
+    <button id="adminBtn">Admin</button>
+  </header>
 
-    <section id="adminView" hidden>
-      <header class="top">
-        <div>
-          <h1>Kelola Etalase</h1>
-          <p class="muted">Affiliator baru melihat perubahan setelah <b>data.json</b> diunggah ke GitHub.</p>
-        </div>
-        <button id="logoutBtn">Keluar</button>
-      </header>
-    <div class="box">
-      <label for="toko">Nama toko (judul halaman affiliator)</label>
-      <input id="toko" placeholder="Contoh: Toko Melati">
+  <form id="loginForm" class="box" hidden>
+    <label for="password" style="margin-top:0">Password admin</label>
+    <input id="password" type="password" autocomplete="current-password" required>
+    <div class="row"><button class="primary" id="loginBtn">Masuk</button></div>
+  </form>
+
+  <form id="form" class="box" hidden>
+    <label for="nama" style="margin-top:0">Nama paket</label>
+    <input id="nama" maxlength="150" required>
+    <label>Gambar</label>
+    <div id="drop" class="drop" tabindex="0" role="button">
+      <img id="preview" alt="Pratinjau" hidden>
+      <span>Seret gambar ke sini, atau klik untuk memilih</span>
     </div>
-
-    <h2 id="formTitle">Tambah paket</h2>
-    <form id="form" class="box">
-      <label for="etalase">1. Etalase</label>
-      <input id="etalase" list="etalaseList" placeholder="Contoh: Etalase 1 - Skincare" required>
-      <datalist id="etalaseList"></datalist>
-
-      <label for="gambar">2. Gambar</label>
-      <input id="gambar" type="file" accept="image/*">
-      <img id="preview" class="preview" alt="Pratinjau gambar" hidden>
-
-      <label for="nama">3. Nama paket</label>
-      <input id="nama" placeholder="Contoh: Paket Glowing 3 in 1" required>
-
-      <label for="link">4. Link etalase</label>
-      <input id="link" type="url" placeholder="Tempel link di sini (https://...)" required>
-
-      <div class="row">
-        <button class="primary" id="saveBtn">Simpan paket</button>
-        <button type="button" id="cancelBtn" hidden>Batal edit</button>
-      </div>
-    </form>
-
-    <h2>Terbitkan</h2>
-    <div class="box">
-      <p class="muted">Unduh file, lalu unggah ke repository GitHub (timpa data.json yang lama).</p>
-      <div class="row">
-        <button class="primary" id="download">Unduh data.json</button>
-        <label class="btn" style="margin:0">Impor data.json<input id="import" type="file" accept=".json,application/json" hidden></label>
-        <button id="copyPage">Salin link untuk affiliator</button>
-      </div>
+    <input id="file" type="file" accept="image/*" hidden>
+    <label for="link">Link</label>
+    <input id="link" type="url" placeholder="https://..." required>
+    <div class="row">
+      <button class="primary" id="saveBtn">Simpan</button>
+      <button type="button" id="cancelBtn" hidden>Batal</button>
     </div>
+  </form>
 
-    <h2 id="count">Daftar paket</h2>
-    <div id="list" class="grid"></div>
+  <input id="search" type="search" placeholder="Cari nama paket..." aria-label="Cari">
+  <div id="list" class="grid"></div>
+  <p id="status" class="muted" style="margin-top:14px">Memuat...</p>
+</div>
+<div id="toast" role="status"></div>
 
-    <h2>Ganti password admin</h2>
-    <form id="passForm" class="box">
-      <label for="newPass">Password baru (minimal 8 karakter)</label>
-      <input id="newPass" type="password" minlength="8" autocomplete="new-password" required>
-      <label for="newPass2">Ulangi password baru</label>
-      <input id="newPass2" type="password" minlength="8" autocomplete="new-password" required>
-      <div class="row"><button class="primary">Ganti password</button></div>
-      <p class="muted" style="margin-top:10px">Setelah diganti, unduh data.json lalu unggah ke GitHub.</p>
-    </form>
-    </section>
-  </div>
-  <div id="toast" role="status"></div>
+<script>
+// ===== TEMPEL URL WEB APP APPS SCRIPT DI SINI =====
+const API_URL = 'TEMPEL_URL_DI_SINI';
 
-  <script src="common.js"></script>
-  <script>
-  // Password awal: admin12345 (ganti lewat menu admin)
-  const DEFAULT_HASH = '41e5653fc7aeb894026d6bb7b2db7f65902b454945fa8fd65a6327047b5277fb';
+const $ = id => document.getElementById(id);
+let items = [], password = '', editId = null, image = '', loaded = false;
 
-  async function hash(text) {
-    const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-    return [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2, '0')).join('');
+function el(tag, props = {}, ...children) {
+  const node = Object.assign(document.createElement(tag), props);
+  node.append(...children);
+  return node;
+}
+
+function toast(message) {
+  $('toast').textContent = message;
+  $('toast').style.display = 'block';
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => ($('toast').style.display = 'none'), 3000);
+}
+
+// Tanpa body = ambil data. Dengan body = login, simpan, atau hapus.
+async function api(body) {
+  const res = await fetch(API_URL, body
+    ? { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) }
+    : { cache: 'no-store' });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.pesan);
+  return data.items;
+}
+
+const errorText = err => err instanceof TypeError || err instanceof SyntaxError
+  ? 'Gagal terhubung. Cek internet dan pengaturan Apps Script.' : err.message;
+
+async function copy(button, text) {
+  let ok = true;
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const area = el('textarea', { value: text });
+    document.body.append(area);
+    area.select();
+    ok = document.execCommand('copy');
+    area.remove();
   }
-  // Login diingat selama tab masih terbuka
-  function remember(value) {
-    try { value ? sessionStorage.setItem('admin', value) : sessionStorage.removeItem('admin'); } catch {}
+  if (!ok) return prompt('Salin manual link berikut:', text);
+  button.textContent = '✓ Tersalin';
+  button.classList.add('done');
+  clearTimeout(button.timer);
+  button.timer = setTimeout(() => { button.textContent = 'Salin Link'; button.classList.remove('done'); }, 1800);
+}
+
+function render() {
+  const q = $('search').value.trim().toLowerCase();
+  const shown = items.filter(i => i.nama.toLowerCase().includes(q));
+  $('list').replaceChildren(...shown.map(item => {
+    const copyBtn = el('button', { className: 'primary', textContent: 'Salin Link' });
+    copyBtn.onclick = () => copy(copyBtn, item.link);
+    const body = el('div', { className: 'body' }, el('h3', { textContent: item.nama }), copyBtn);
+    if (/^https?:\/\//i.test(item.link)) {
+      body.append(el('a', { className: 'btn', textContent: 'Buka', href: item.link, target: '_blank', rel: 'noopener noreferrer' }));
+    }
+    if (password) {
+      body.append(
+        el('button', { textContent: 'Edit', onclick: () => edit(item) }),
+        el('button', { textContent: 'Hapus', className: 'danger', onclick: e => remove(e.target, item) }));
+    }
+    return el('article', { className: 'card' }, el('img', { src: item.gambar, alt: item.nama }), body);
+  }));
+  $('status').textContent = !loaded ? $('status').textContent : shown.length ? '' : 'Belum ada paket.';
+}
+
+function resetForm() {
+  $('form').reset();
+  editId = null;
+  image = '';
+  $('preview').hidden = true;
+  $('cancelBtn').hidden = true;
+  $('saveBtn').textContent = 'Simpan';
+}
+
+function showImage(src) {
+  image = src;
+  $('preview').src = src;
+  $('preview').hidden = false;
+}
+
+function edit(item) {
+  resetForm();
+  editId = item.id;
+  $('nama').value = item.nama;
+  $('link').value = item.link;
+  showImage(item.gambar);
+  $('cancelBtn').hidden = false;
+  $('saveBtn').textContent = 'Simpan perubahan';
+  $('form').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function remove(button, item) {
+  if (!confirm('Hapus "' + item.nama + '"?')) return;
+  button.disabled = true;
+  try {
+    items = await api({ action: 'hapus', password, id: item.id });
+    if (editId === item.id) resetForm();
+    render();
+    toast('Paket dihapus.');
+  } catch (err) { button.disabled = false; toast(errorText(err)); }
+}
+
+// Gambar diperkecil otomatis agar muat di satu sel Spreadsheet
+async function compress(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    let size = 600, quality = 0.85, result;
+    do {
+      const scale = Math.min(1, size / Math.max(img.width, img.height));
+      const canvas = el('canvas', {
+        width: Math.max(1, Math.round(img.width * scale)),
+        height: Math.max(1, Math.round(img.height * scale))
+      });
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      result = canvas.toDataURL('image/jpeg', quality);
+      if (quality > 0.6) quality -= 0.1; else size = Math.round(size * 0.85);
+    } while (result.length > 48000);
+    return result;
+  } finally { URL.revokeObjectURL(url); }
+}
+
+async function pick(file) {
+  if (!file) return;
+  $('saveBtn').disabled = true;
+  try { showImage(await compress(file)); }
+  catch { toast('Gambar tidak didukung. Gunakan JPG atau PNG.'); }
+  $('saveBtn').disabled = false;
+}
+
+const drop = $('drop');
+drop.onclick = () => $('file').click();
+drop.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('file').click(); } };
+$('file').onchange = e => { pick(e.target.files[0]); e.target.value = ''; };
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+drop.ondragleave = () => drop.classList.remove('over');
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); pick(e.dataTransfer.files[0]); };
+// Cegah browser membuka file yang jatuh di luar kotak
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => e.preventDefault());
+
+$('form').onsubmit = async e => {
+  e.preventDefault();
+  if (!image) return toast('Masukkan gambar dulu.');
+  // id disimpan agar klik ulang setelah gagal tidak membuat data ganda
+  editId = editId || Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const item = { id: editId, nama: $('nama').value.trim(), gambar: image, link: $('link').value.trim() };
+  const label = $('saveBtn').textContent;
+  $('saveBtn').disabled = true;
+  $('saveBtn').textContent = 'Menyimpan...';
+  try {
+    items = await api({ action: 'simpan', password, item });
+    resetForm();
+    render();
+    toast('Tersimpan.');
+  } catch (err) {
+    $('saveBtn').textContent = label;
+    toast(errorText(err));
   }
+  $('saveBtn').disabled = false;
+};
 
-  const shop = (() => {
-    let data = { items: [] };
-    let active = '';
-    const list = document.getElementById('list2');
-    const search = document.getElementById('search');
-
-    function render() {
-      const names = [...new Set(data.items.map(i => i.etalase))];
-      document.getElementById('chips').replaceChildren(
-        ...['', ...names].map(name => el('button', {
-          textContent: name || 'Semua',
-          className: name === active ? 'active' : '',
-          onclick: () => { active = name; render(); }
-        }))
-      );
-
-      const q = search.value.trim().toLowerCase();
-      const shown = data.items.filter(i =>
-        (!active || i.etalase === active) &&
-        (i.nama + ' ' + i.etalase).toLowerCase().includes(q));
-
-      list.replaceChildren();
-      if (!shown.length) {
-        list.append(el('p', { className: 'muted', textContent: 'Belum ada paket untuk ditampilkan.' }));
-        return;
-      }
-      for (const name of names) {
-        const items = shown.filter(i => i.etalase === name);
-        if (!items.length) continue;
-        const grid = el('div', { className: 'grid' });
-        for (const item of items) {
-          const copy = el('button', { className: 'primary', textContent: 'Salin Link' });
-          copy.onclick = () => copyWithFeedback(copy, item.link);
-          const actions = el('div', { className: 'actions stack' }, copy);
-          if (isValidLink(item.link)) {
-            actions.append(el('a', { className: 'btn', textContent: 'Buka', href: item.link, target: '_blank', rel: 'noopener noreferrer' }));
-          }
-          grid.append(el('article', { className: 'card' },
-            el('img', { src: item.gambar, alt: item.nama, loading: 'lazy' }),
-            el('div', { className: 'body' }, el('h3', { textContent: item.nama }), actions)));
-        }
-        list.append(el('h2', { textContent: name }), grid);
-      }
-    }
-
-    search.oninput = render;
-    loadPublished().then(d => {
-      data = d;
-      document.title = document.getElementById('title').textContent = d.toko || 'Etalase Affiliate';
-      render();
-    }).catch(() => {
-      list.replaceChildren(el('p', { className: 'muted', textContent: 'Data belum bisa dimuat. Pastikan data.json sudah diunggah dan halaman dibuka lewat GitHub Pages.' }));
-    });
-  })();
-
-  const admin = (() => {
-    const $ = id => document.getElementById(id);
-    let data = { toko: '', updatedAt: 0, items: [] };
-    let editId = null;
-    let image = '';
-
-    // Draf disimpan di IndexedDB agar muat banyak gambar
-    const dbReady = new Promise((resolve, reject) => {
-      const req = indexedDB.open('etalase:' + new URL('admin.html', location.href).pathname, 1);
-      req.onupgradeneeded = () => req.result.createObjectStore('draft');
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-    async function draft(mode, value) {
-      const db = await dbReady;
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction('draft', mode);
-        const store = tx.objectStore('draft');
-        const req = mode === 'readonly' ? store.get('data') : store.put(value, 'data');
-        tx.oncomplete = () => resolve(req.result);
-        tx.onerror = () => reject(tx.error);
-      });
-    }
-
-    async function save() {
-      data.updatedAt = Date.now();
-      render();
-      try { await draft('readwrite', data); }
-      catch { toast('Draf gagal disimpan di browser. Segera unduh data.json.'); }
-    }
-
-    function resetForm(keepEtalase = '') {
-      $('form').reset();
-      $('etalase').value = keepEtalase;
-      editId = null;
-      image = '';
-      $('preview').hidden = true;
-      $('cancelBtn').hidden = true;
-      $('formTitle').textContent = 'Tambah paket';
-    }
-
-    function showImage(src) {
-      image = src;
-      $('preview').src = src;
-      $('preview').hidden = false;
-    }
-
-    // Perkecil gambar (maks. 600px) supaya halaman tetap ringan
-    function compress(file) {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        const url = URL.createObjectURL(file);
-        img.onload = () => {
-          const scale = Math.min(1, 600 / Math.max(img.width, img.height));
-          const canvas = el('canvas', { width: Math.round(img.width * scale), height: Math.round(img.height * scale) });
-          const ctx = canvas.getContext('2d');
-          ctx.fillStyle = '#fff';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          URL.revokeObjectURL(url);
-          resolve(canvas.toDataURL('image/jpeg', 0.8));
-        };
-        img.onerror = () => { URL.revokeObjectURL(url); reject(); };
-        img.src = url;
-      });
-    }
-
-    let pending = Promise.resolve();
-    $('gambar').onchange = e => {
-      const file = e.target.files[0];
-      if (!file) return;
-      pending = compress(file).then(showImage).catch(() => {
-        e.target.value = '';
-        toast('Format gambar tidak didukung. Gunakan JPG atau PNG.');
-      });
-    };
-
-    $('form').onsubmit = async e => {
-      e.preventDefault();
-      await pending;
-      const item = {
-        id: editId || Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-        etalase: $('etalase').value.trim(),
-        nama: $('nama').value.trim(),
-        link: $('link').value.trim(),
-        gambar: image
-      };
-      if (!item.etalase || !item.nama) return toast('Etalase dan nama paket wajib diisi.');
-      if (!isValidLink(item.link)) return toast('Link harus diawali http:// atau https://');
-      if (!item.gambar) return toast('Pilih gambar dulu.');
-      const index = data.items.findIndex(i => i.id === item.id);
-      if (index >= 0) data.items[index] = item; else data.items.push(item);
-      resetForm(item.etalase);
-      await save();
-      toast('Paket tersimpan.');
-    };
-
-    $('cancelBtn').onclick = () => resetForm();
-    $('toko').onchange = () => { data.toko = $('toko').value.trim(); save(); };
-
-    function move(index, step) {
-      const target = index + step;
-      if (target < 0 || target >= data.items.length) return;
-      [data.items[index], data.items[target]] = [data.items[target], data.items[index]];
-      save();
-    }
-
-    function render() {
-      $('toko').value = data.toko || '';
-      $('count').textContent = `Daftar paket (${data.items.length})`;
-      $('etalaseList').replaceChildren(...[...new Set(data.items.map(i => i.etalase))].map(v => el('option', { value: v })));
-      $('list').replaceChildren(...data.items.map((item, index) => {
-        const copy = el('button', { textContent: 'Salin' });
-        copy.onclick = () => copyWithFeedback(copy, item.link);
-        const edit = el('button', { textContent: 'Edit', onclick: () => {
-          resetForm(item.etalase);
-          editId = item.id;
-          $('nama').value = item.nama;
-          $('link').value = item.link;
-          showImage(item.gambar);
-          $('cancelBtn').hidden = false;
-          $('formTitle').textContent = 'Edit paket';
-          $('formTitle').scrollIntoView({ behavior: 'smooth' });
-        }});
-        const del = el('button', { textContent: 'Hapus', className: 'danger', onclick: () => {
-          if (!confirm(`Hapus "${item.nama}"?`)) return;
-          data.items = data.items.filter(i => i.id !== item.id);
-          if (editId === item.id) resetForm();
-          save();
-        }});
-        const up = el('button', { textContent: '↑', title: 'Naikkan', onclick: () => move(index, -1) });
-        const down = el('button', { textContent: '↓', title: 'Turunkan', onclick: () => move(index, 1) });
-        return el('article', { className: 'card' },
-          el('img', { src: item.gambar, alt: item.nama }),
-          el('div', { className: 'body' },
-            el('span', { className: 'muted', textContent: item.etalase }),
-            el('h3', { textContent: item.nama }),
-            el('div', { className: 'actions' }, copy, edit, del),
-            el('div', { className: 'actions' }, up, down)));
-      }));
-    }
-
-    $('download').onclick = () => {
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const a = el('a', { href: URL.createObjectURL(blob), download: 'data.json' });
-      document.body.append(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-      toast('data.json diunduh. Unggah ke GitHub.');
-    };
-
-    $('import').onchange = async e => {
-      const file = e.target.files[0];
-      e.target.value = '';
-      if (!file) return;
-      try {
-        const incoming = JSON.parse(await file.text());
-        const ok = Array.isArray(incoming.items) && incoming.items.every(i =>
-          i && ['id', 'etalase', 'nama', 'link', 'gambar'].every(k => typeof i[k] === 'string'));
-        if (!ok) throw new Error();
-        if (data.items.length && !confirm('Ganti semua daftar dengan isi file ini?')) return;
-        incoming.adminHash = incoming.adminHash || data.adminHash;
-        data = incoming;
-        resetForm();
-        await save();
-        toast('Data berhasil diimpor.');
-      } catch { toast('File data.json tidak valid.'); }
-    };
-
-    $('copyPage').onclick = e => copyWithFeedback(e.target, location.href.split(/[?#]/)[0].replace(/index\.html$/, ''));
-
-    $('passForm').onsubmit = async e => {
-      e.preventDefault();
-      if ($('newPass').value !== $('newPass2').value) return toast('Ulangan password tidak sama.');
-      data.adminHash = await hash($('newPass').value);
-      $('passForm').reset();
-      remember(data.adminHash);
-      await save();
-      toast('Password diganti. Unduh data.json lalu unggah ke GitHub.');
-    };
-
-    // Pakai data paling baru: draf di browser atau yang sudah terbit
-    async function latest() {
-      const [local, online] = await Promise.all([
-        draft('readonly').catch(() => null),
-        loadPublished().catch(() => null)
-      ]);
-      return [local, online].filter(Boolean).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
-    }
-
-    return {
-      latest,
-      open(newest) { if (newest) data = newest; render(); }
-    };
-  })();
-
-  const byId = id => document.getElementById(id);
-  function showAdmin(newest) {
-    admin.open(newest);
-    byId('publicView').hidden = true;
-    byId('adminView').hidden = false;
+$('adminBtn').onclick = () => {
+  if (password) {
+    password = '';
+    resetForm();
+    $('form').hidden = true;
+    $('adminBtn').textContent = 'Admin';
+    return render();
   }
-  byId('loginBtn').onclick = () => { byId('loginForm').hidden = false; byId('password').focus(); };
-  byId('closeLogin').onclick = () => { byId('loginForm').reset(); byId('loginForm').hidden = true; };
-  byId('loginForm').onsubmit = async e => {
-    e.preventDefault();
-    const newest = await admin.latest();
-    const typed = await hash(byId('password').value);
-    if (typed !== (newest?.adminHash || DEFAULT_HASH)) return toast('Password salah.');
-    remember(typed);
-    byId('closeLogin').click();
-    showAdmin(newest);
-  };
-  byId('logoutBtn').onclick = () => { remember(null); location.reload(); };
+  $('loginForm').hidden = !$('loginForm').hidden;
+  $('password').focus();
+};
 
-  (async () => {
-    let saved = null;
-    try { saved = sessionStorage.getItem('admin'); } catch {}
-    if (!saved) return;
-    const newest = await admin.latest();
-    if (saved === (newest?.adminHash || DEFAULT_HASH)) showAdmin(newest);
-  })();
-  </script>
+$('loginForm').onsubmit = async e => {
+  e.preventDefault();
+  $('loginBtn').disabled = true;
+  try {
+    const typed = $('password').value;
+    items = await api({ action: 'login', password: typed });
+    password = typed;
+    loaded = true;
+    $('loginForm').reset();
+    $('loginForm').hidden = true;
+    $('form').hidden = false;
+    $('adminBtn').textContent = 'Keluar';
+    render();
+  } catch (err) { toast(errorText(err)); }
+  $('loginBtn').disabled = false;
+};
+
+$('cancelBtn').onclick = resetForm;
+$('search').oninput = render;
+
+api().then(data => { items = data; loaded = true; render(); })
+  .catch(err => { $('status').textContent = errorText(err); });
+</script>
 </body>
 </html>
