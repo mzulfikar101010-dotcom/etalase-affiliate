@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Etalase Affiliate</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1 id="title">Etalase Affiliate</h1>
+      <p class="muted">Pilih paket, lalu tekan <b>Salin Link</b>.</p>
+    </header>
+    <input id="search" type="search" placeholder="Cari nama paket atau etalase..." aria-label="Cari">
+    <div id="chips" class="chips"></div>
+    <main id="list"><p class="muted">Memuat...</p></main>
+  </div>
+  <div id="toast" role="status"></div>
+
+  <script src="common.js"></script>
+  <script>
+    let data = { items: [] };
+    let active = '';
+    const list = document.getElementById('list');
+    const search = document.getElementById('search');
+
+    function render() {
+      const names = [...new Set(data.items.map(i => i.etalase))];
+      document.getElementById('chips').replaceChildren(
+        ...['', ...names].map(name => el('button', {
+          textContent: name || 'Semua',
+          className: name === active ? 'active' : '',
+          onclick: () => { active = name; render(); }
+        }))
+      );
+
+      const q = search.value.trim().toLowerCase();
+      const shown = data.items.filter(i =>
+        (!active || i.etalase === active) &&
+        (i.nama + ' ' + i.etalase).toLowerCase().includes(q));
+
+      list.replaceChildren();
+      if (!shown.length) {
+        list.append(el('p', { className: 'muted', textContent: 'Belum ada paket untuk ditampilkan.' }));
+        return;
+      }
+      for (const name of names) {
+        const items = shown.filter(i => i.etalase === name);
+        if (!items.length) continue;
+        const grid = el('div', { className: 'grid' });
+        for (const item of items) {
+          const copy = el('button', { className: 'primary', textContent: 'Salin Link' });
+          copy.onclick = () => copyWithFeedback(copy, item.link);
+          const actions = el('div', { className: 'actions stack' }, copy);
+          if (isValidLink(item.link)) {
+            actions.append(el('a', { className: 'btn', textContent: 'Buka', href: item.link, target: '_blank', rel: 'noopener noreferrer' }));
+          }
+          grid.append(el('article', { className: 'card' },
+            el('img', { src: item.gambar, alt: item.nama, loading: 'lazy' }),
+            el('div', { className: 'body' }, el('h3', { textContent: item.nama }), actions)));
+        }
+        list.append(el('h2', { textContent: name }), grid);
+      }
+    }
+
+    search.oninput = render;
+    loadPublished().then(d => {
+      data = d;
+      document.title = document.getElementById('title').textContent = d.toko || 'Etalase Affiliate';
+      render();
+    }).catch(() => {
+      list.replaceChildren(el('p', { className: 'muted', textContent: 'Data belum bisa dimuat. Pastikan data.json sudah diunggah dan halaman dibuka lewat GitHub Pages (bukan klik dua kali dari komputer).' }));
+    });
+  </script>
+</body>
+</html>

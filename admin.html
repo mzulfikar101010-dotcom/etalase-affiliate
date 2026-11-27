@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Kelola Etalase (Seller)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Kelola Etalase</h1>
+      <p class="muted">Perubahan tersimpan di browser ini. Affiliator baru melihatnya setelah kamu mengunggah <b>data.json</b> ke GitHub.</p>
+    </header>
+
+    <div class="box">
+      <label for="toko">Nama toko (judul halaman affiliator)</label>
+      <input id="toko" placeholder="Contoh: Toko Melati">
+    </div>
+
+    <h2 id="formTitle">Tambah paket</h2>
+    <form id="form" class="box">
+      <label for="etalase">1. Etalase</label>
+      <input id="etalase" list="etalaseList" placeholder="Contoh: Etalase 1 - Skincare" required>
+      <datalist id="etalaseList"></datalist>
+
+      <label for="gambar">2. Gambar</label>
+      <input id="gambar" type="file" accept="image/*">
+      <img id="preview" class="preview" alt="Pratinjau gambar" hidden>
+
+      <label for="nama">3. Nama paket</label>
+      <input id="nama" placeholder="Contoh: Paket Glowing 3 in 1" required>
+
+      <label for="link">4. Link etalase</label>
+      <input id="link" type="url" placeholder="Tempel link di sini (https://...)" required>
+
+      <div class="row">
+        <button class="primary" id="saveBtn">Simpan paket</button>
+        <button type="button" id="cancelBtn" hidden>Batal edit</button>
+      </div>
+    </form>
+
+    <h2>Terbitkan</h2>
+    <div class="box">
+      <p class="muted">Unduh file, lalu unggah ke repository GitHub (timpa data.json yang lama).</p>
+      <div class="row">
+        <button class="primary" id="download">Unduh data.json</button>
+        <label class="btn" style="margin:0">Impor data.json<input id="import" type="file" accept=".json,application/json" hidden></label>
+        <button id="copyPage">Salin link halaman affiliator</button>
+      </div>
+    </div>
+
+    <h2 id="count">Daftar paket</h2>
+    <div id="list" class="grid"></div>
+  </div>
+  <div id="toast" role="status"></div>
+
+  <script src="common.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    let data = { toko: '', updatedAt: 0, items: [] };
+    let editId = null;
+    let image = '';
+
+    // Draf disimpan di IndexedDB agar muat banyak gambar
+    const dbReady = new Promise((resolve, reject) => {
+      const req = indexedDB.open('etalase:' + location.pathname, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('draft');
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    async function draft(mode, value) {
+      const db = await dbReady;
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('draft', mode);
+        const store = tx.objectStore('draft');
+        const req = mode === 'readonly' ? store.get('data') : store.put(value, 'data');
+        tx.oncomplete = () => resolve(req.result);
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function save() {
+      data.updatedAt = Date.now();
+      render();
+      try { await draft('readwrite', data); }
+      catch { toast('Draf gagal disimpan di browser. Segera unduh data.json.'); }
+    }
+
+    function resetForm(keepEtalase = '') {
+      $('form').reset();
+      $('etalase').value = keepEtalase;
+      editId = null;
+      image = '';
+      $('preview').hidden = true;
+      $('cancelBtn').hidden = true;
+      $('formTitle').textContent = 'Tambah paket';
+    }
+
+    function showImage(src) {
+      image = src;
+      $('preview').src = src;
+      $('preview').hidden = false;
+    }
+
+    // Perkecil gambar (maks. 600px) supaya halaman tetap ringan
+    function compress(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          const scale = Math.min(1, 600 / Math.max(img.width, img.height));
+          const canvas = el('canvas', { width: Math.round(img.width * scale), height: Math.round(img.height * scale) });
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          URL.revokeObjectURL(url);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(); };
+        img.src = url;
+      });
+    }
+
+    let pending = Promise.resolve();
+    $('gambar').onchange = e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      pending = compress(file).then(showImage).catch(() => {
+        e.target.value = '';
+        toast('Format gambar tidak didukung. Gunakan JPG atau PNG.');
+      });
+    };
+
+    $('form').onsubmit = async e => {
+      e.preventDefault();
+      await pending;
+      const item = {
+        id: editId || Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        etalase: $('etalase').value.trim(),
+        nama: $('nama').value.trim(),
+        link: $('link').value.trim(),
+        gambar: image
+      };
+      if (!item.etalase || !item.nama) return toast('Etalase dan nama paket wajib diisi.');
+      if (!isValidLink(item.link)) return toast('Link harus diawali http:// atau https://');
+      if (!item.gambar) return toast('Pilih gambar dulu.');
+      const index = data.items.findIndex(i => i.id === item.id);
+      if (index >= 0) data.items[index] = item; else data.items.push(item);
+      resetForm(item.etalase);
+      await save();
+      toast('Paket tersimpan.');
+    };
+
+    $('cancelBtn').onclick = () => resetForm();
+    $('toko').onchange = () => { data.toko = $('toko').value.trim(); save(); };
+
+    function move(index, step) {
+      const target = index + step;
+      if (target < 0 || target >= data.items.length) return;
+      [data.items[index], data.items[target]] = [data.items[target], data.items[index]];
+      save();
+    }
+
+    function render() {
+      $('toko').value = data.toko || '';
+      $('count').textContent = `Daftar paket (${data.items.length})`;
+      $('etalaseList').replaceChildren(...[...new Set(data.items.map(i => i.etalase))].map(v => el('option', { value: v })));
+      $('list').replaceChildren(...data.items.map((item, index) => {
+        const copy = el('button', { textContent: 'Salin' });
+        copy.onclick = () => copyWithFeedback(copy, item.link);
+        const edit = el('button', { textContent: 'Edit', onclick: () => {
+          resetForm(item.etalase);
+          editId = item.id;
+          $('nama').value = item.nama;
+          $('link').value = item.link;
+          showImage(item.gambar);
+          $('cancelBtn').hidden = false;
+          $('formTitle').textContent = 'Edit paket';
+          $('formTitle').scrollIntoView({ behavior: 'smooth' });
+        }});
+        const del = el('button', { textContent: 'Hapus', className: 'danger', onclick: () => {
+          if (!confirm(`Hapus "${item.nama}"?`)) return;
+          data.items = data.items.filter(i => i.id !== item.id);
+          if (editId === item.id) resetForm();
+          save();
+        }});
+        const up = el('button', { textContent: '↑', title: 'Naikkan', onclick: () => move(index, -1) });
+        const down = el('button', { textContent: '↓', title: 'Turunkan', onclick: () => move(index, 1) });
+        return el('article', { className: 'card' },
+          el('img', { src: item.gambar, alt: item.nama }),
+          el('div', { className: 'body' },
+            el('span', { className: 'muted', textContent: item.etalase }),
+            el('h3', { textContent: item.nama }),
+            el('div', { className: 'actions' }, copy, edit, del),
+            el('div', { className: 'actions' }, up, down)));
+      }));
+    }
+
+    $('download').onclick = () => {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = el('a', { href: URL.createObjectURL(blob), download: 'data.json' });
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      toast('data.json diunduh. Unggah ke GitHub.');
+    };
+
+    $('import').onchange = async e => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      try {
+        const incoming = JSON.parse(await file.text());
+        const ok = Array.isArray(incoming.items) && incoming.items.every(i =>
+          i && ['id', 'etalase', 'nama', 'link', 'gambar'].every(k => typeof i[k] === 'string'));
+        if (!ok) throw new Error();
+        if (data.items.length && !confirm('Ganti semua daftar dengan isi file ini?')) return;
+        data = incoming;
+        resetForm();
+        await save();
+        toast('Data berhasil diimpor.');
+      } catch { toast('File data.json tidak valid.'); }
+    };
+
+    $('copyPage').onclick = e => copyWithFeedback(e.target, new URL('index.html', location.href).href.replace(/index\.html$/, ''));
+
+    // Pakai data paling baru: draf di browser atau yang sudah terbit
+    (async () => {
+      const [local, online] = await Promise.all([
+        draft('readonly').catch(() => null),
+        loadPublished().catch(() => null)
+      ]);
+      const newest = [local, online].filter(Boolean).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+      if (newest) data = newest;
+      render();
+      $('saveBtn').disabled = false;
+    })();
+    $('saveBtn').disabled = true;
+  </script>
+</body>
+</html>
